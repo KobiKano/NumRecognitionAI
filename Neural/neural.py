@@ -1,5 +1,5 @@
 import pandas as pd
-import Neural.node as node
+import NumRecognitionAI.Neural.node as node
 import numpy as np
 import numpy.random as rand
 import math
