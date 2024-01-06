@@ -76,7 +76,7 @@ class Network:
         df = pd.DataFrame(data=data)
         df.to_csv(path, quoting=csv.QUOTE_ALL)
 
-    def train(self, inputs, desired, num_back):
+    def train(self, inputs, desired, num_back_prop):
         # train on array of inputs
         outputs = self.forward_prop(inputs)
         # check outputs and compare to desired cost
@@ -87,7 +87,7 @@ class Network:
 
         print("Cost of last train: " + str(cost))
         # send cost feedback backwards to adjust weights and biases
-        for i in range(num_back):
+        for i in range(num_back_prop):
             self.backward_prop(desired, inputs)  # back prop a user defined num times
 
     def forward_prop(self, inputs):

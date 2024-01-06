@@ -1,6 +1,4 @@
 #  Main file for project
-import matplotlib.pyplot as plt
-from os.path import join
 from NumRecognitionAI.MNIST.MNIST_READER import MnistDataloader
 from NumRecognitionAI.Neural.neural import Network
 from training import train
@@ -24,6 +22,7 @@ if __name__ == '__main__':
 
     # print("size of Image: ", len(img_test[0]))
     # print("size of Image: ", len(img_test[0][0]))
+    # print("first label: ", label_test[0])
 
     # create network
     # 2 layers not including input or output
@@ -39,7 +38,7 @@ if __name__ == '__main__':
                         "2) test\n"
                         "3) exit\n")
 
-        match user_in:
+        match int(user_in):
             case 1:
                 train(network, img_train, label_train)
             case 2:
