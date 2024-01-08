@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # size 20 layers
     # 28 x 28 images where each input is a pixel (784 inputs)
     # outputs 0 through 9 (10 outputs)
-    num_layers, layer_size, num_inputs, num_outputs = 3, 100, 784, 10
+    num_layers, layer_size, num_inputs, num_outputs = 2, 30, 784, 10
 
     # allow user input on network parameters
     while True:
