@@ -1,7 +1,9 @@
 #  This file is used to test trained network using MNIST dataset
 import pandas as pd
 import random as rand
+import numpy as np
 import matplotlib.pyplot as plt
+
 
 #  This function tests the network
 def test(network, images, labels):
@@ -22,11 +24,18 @@ def test(network, images, labels):
 
         # show image at random index
         plt.imshow(images[r], cmap=plt.cm.gray)
+        plt.show()
 
         # propagate through neural network
         inputs = []
         for row in images[r]:
             inputs.extend(row)
+        # normalize inputs between 0.0 and 1.0
+        inputs = np.array(inputs)
+        inputs = (inputs - np.min(inputs)) / (np.max(inputs) - np.min(inputs))
+        inputs = inputs.tolist()
+
+        # find network prediction
         output = network.forward_prop(inputs)
 
         # check output

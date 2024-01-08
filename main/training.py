@@ -15,6 +15,11 @@ def train(network, images, labels):
         inputs = []
         for row in images[i]:
             inputs.extend(row)
+        # normalize inputs between 0.0 and 1.0
+        inputs = np.array(inputs)
+        inputs = (inputs - np.min(inputs))/(np.max(inputs) - np.min(inputs))
+        inputs = inputs.tolist()
+
         # form desired output list
         desired = np.zeros(10)
         desired[labels[i]] = 1

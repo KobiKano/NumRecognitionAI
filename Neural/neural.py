@@ -1,6 +1,5 @@
 import pandas as pd
 import NumRecognitionAI.Neural.node as node
-import numpy as np
 import numpy.random as rand
 import math
 import ast
@@ -10,17 +9,19 @@ import csv
 # This file contains all functions for the initialization of a neural network
 
 # random filler to allow negative values
-def fill(num):
+def fill(num: int, weight_range: float):
     output = []
     for i in range(num):
-        output.append(rand.uniform(-1.0, 1.0))
+        output.append(rand.uniform(-weight_range, weight_range))
     return output
 
 
 # this is the network class that will house all functions for the neural network
+# this network assumes all data inputs are normalized between 0.0 and 1.0
 class Network:
 
-    def __init__(self, num_layers, layer_size, num_inputs, num_outputs):
+    def __init__(self, num_layers: int, layer_size: int, num_inputs: int, num_outputs: int,
+                 weight_range: float, bias_range: float):
         # initialize fields
         self.network = []
         self.layers = 0
@@ -33,24 +34,25 @@ class Network:
             # check if input layer
             if i == 0:
                 for j in range(layer_size):
-                    self.network[i].append(node.Node(fill(num_inputs), rand.uniform(-1.0, 1.0)))
+                    self.network[i].append(node.Node(fill(num_inputs, weight_range),
+                                                     rand.uniform(-bias_range, bias_range)))
                 continue
             for j in range(layer_size):
-                self.network[i].append(node.Node(fill(layer_size), rand.uniform(-1.0, 1.0)))
+                self.network[i].append(node.Node(fill(layer_size, weight_range), rand.uniform(-bias_range, bias_range)))
 
-        # initialize output layer to all zeros
+        # initialize output layer
         self.network.append([])
         for j in range(num_outputs):
-            self.network[num_layers].append(node.Node(np.zeros(layer_size, dtype=float).tolist(), 0.0))
-
+            self.network[num_layers].append(node.Node(fill(layer_size, weight_range),
+                                                      rand.uniform(-bias_range, bias_range)))
 
         print(f"Length of network: {len(self.network)}")
         print(f"Length of output layer: {len(self.network[self.layers])}")
 
-    def set_learning_rate(self, rate):
+    def set_learning_rate(self, rate: float):
         self.learning_rate = rate
 
-    def set_weights_biases(self, weights, biases):
+    def set_weights_biases(self, weights: list, biases: list):
         # assume weights are 3-dimensional array
         index = 0
         for i in range(len(self.network)):  # layer
@@ -59,7 +61,7 @@ class Network:
                 self.network[i][j].set_bias(biases[index])
                 index += 1
 
-    def save_weights_biases(self, path):
+    def save_weights_biases(self, path: str):
         data = {
             "layer": [],
             "node": [],
@@ -76,21 +78,23 @@ class Network:
         df = pd.DataFrame(data=data)
         df.to_csv(path, quoting=csv.QUOTE_ALL)
 
-    def train(self, inputs, desired, num_back_prop):
+    def train(self, inputs: list, desired: list, num_back_prop: int):
         # train on array of inputs
         outputs = self.forward_prop(inputs)
+
         # check outputs and compare to desired cost
         cost = 0
         for i in range(len(outputs)):
             # print(f"Desired: {desired[i]}\nOutput: {outputs[i]}")
             cost += math.pow((outputs[i] - desired[i]), 2)
-
+        cost = cost / len(outputs)  # mean squared error
         print("Cost of last train: " + str(cost))
+
         # send cost feedback backwards to adjust weights and biases
         for i in range(num_back_prop):
             self.backward_prop(desired, inputs)  # back prop a user defined num times
 
-    def forward_prop(self, inputs):
+    def forward_prop(self, inputs: list):
         outputs = []
         # go through each node in first layer and feed inputs and save outputs
         for j in range(len(self.network[0])):
@@ -106,47 +110,56 @@ class Network:
 
         return outputs
 
-    def backward_prop(self, desired, inputs):
+    def backward_prop(self, desired: list, inputs: list):
         # find gradients at output layer
         prev_gradients = []
-        for i in range(len(self.network[self.layers])):
-            local_gradient = 2*(self.network[self.layers][i].last_sum - desired[i])
-            prev_gradients.append(local_gradient)
+        for layer_node in self.network[self.layers]:
+            index = self.network[self.layers].index(layer_node)  # save index value for future use
+
+            # this is the partial derivative of the cost function with respect to this specific output node
+            local_gradient = (layer_node.last_sum - desired[index]) * (2/len(self.network[self.layers]))
+            prev_gradients.append(local_gradient)  # save local gradients for use in calculating future cost gradients
 
             # find new weights and biases
-            for j in range(len(self.network[self.layers][i].weights)):
-                self.network[self.layers][i].weights[j] -= local_gradient * self.learning_rate * self.network[self.layers - 1][j].last_sum
+            delta = local_gradient * layer_node.sigmoid_prime
+            for j in range(len(layer_node.weights)):
+                layer_node.weights[j] -= self.learning_rate * delta * self.network[self.layers - 1][j].last_sum
 
-            self.network[self.layers][i].bias -= local_gradient * self.learning_rate
+            layer_node.bias -= self.learning_rate * delta
 
+        # hidden layer nodes are more complicated with the need to account for their effect on following nodes
         # find gradients of lower layers
         i = self.layers - 1
         while i != -1:  # iterate through layers backwards
             gradients = []
             for j in range(len(self.network[i])):  # iterate through each node in this layer
-                # find local gradient by summing over values in L + 1 layer
+                # find local gradient by finding partial derivative of cost with respect to activation on current node
+                #                   This is done by accounting for all possible effects a change in this activation
+                #                   can have on all connected nodes in further layers
                 local_gradient = 0
-                # print(len(self.network[i + 1]))
                 for k in range(len(self.network[i + 1])):  # iterate through all nodes in next layer
                     # add product of weight from this node to every node in L + 1
                     #                sigmoid prime of other node
                     #                calculated local gradient at other node
-                    local_gradient += self.network[i + 1][k].weights[j] * self.network[i + 1][k].sigmoid_prime * prev_gradients[k]
+                    local_gradient += (self.network[i + 1][k].weights[j] * self.network[i + 1][k].sigmoid_prime
+                                       * prev_gradients[k])
 
                 gradients.append(local_gradient)
 
                 # find new weights and biases
                 # check if on lowest layer, if so use input values to adjust weights, else use prev layer output
                 # iterate through each weight and adjust
+                delta = local_gradient * self.network[i][j].sigmoid_prime  # change dependent on specific node
                 if i == 0:
                     for k in range(len(self.network[i][j].weights)):
-                        self.network[i][j].weights[k] -= local_gradient * self.learning_rate * inputs[k]
+                        self.network[i][j].weights[k] -= self.learning_rate * delta * inputs[k]
 
                 else:
                     for k in range(len(self.network[i][j].weights)):
-                        self.network[i][j].weights[k] -= local_gradient * self.learning_rate * self.network[i - 1][k].last_sum
+                        self.network[i][j].weights[k] -= self.learning_rate * delta * self.network[i - 1][k].last_sum
 
-                self.network[i][j].bias -= local_gradient * self.learning_rate
+                # bias is only dependent on node, therefore layer level doesn't matter
+                self.network[i][j].bias -= self.learning_rate * delta
 
             prev_gradients = gradients.copy()
             i -= 1

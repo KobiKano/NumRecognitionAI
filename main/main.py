@@ -29,7 +29,7 @@ if __name__ == '__main__':
     # size 20 layers
     # 28 x 28 images where each input is a pixel (784 inputs)
     # outputs 0 through 9 (10 outputs)
-    network = Network(3, 20, 784, 10)
+    network = Network(3, 20, 784, 10, 1.0, 10.0)
 
     while True:
         # infinite loop to test and train network
