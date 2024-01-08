@@ -25,32 +25,41 @@ class Network:
         # initialize fields
         self.network = []
         self.layers = 0
-        self.learning_rate = 1
+        self.learning_rate = 1.0
+        # save for external modification
+        self.layer_size = layer_size
+        self.num_inputs = num_inputs
+        self.num_outputs = num_outputs
+        self.weight_range = weight_range
+        self.bias_range = bias_range
 
         # initialize layers
         self.layers = num_layers
-        for i in range(num_layers):
-            self.network.append([])
-            # check if input layer
-            if i == 0:
-                for j in range(layer_size):
-                    self.network[i].append(node.Node(fill(num_inputs, weight_range),
-                                                     rand.uniform(-bias_range, bias_range)))
-                continue
-            for j in range(layer_size):
-                self.network[i].append(node.Node(fill(layer_size, weight_range), rand.uniform(-bias_range, bias_range)))
-
-        # initialize output layer
-        self.network.append([])
-        for j in range(num_outputs):
-            self.network[num_layers].append(node.Node(fill(layer_size, weight_range),
-                                                      rand.uniform(-bias_range, bias_range)))
-
-        print(f"Length of network: {len(self.network)}")
-        print(f"Length of output layer: {len(self.network[self.layers])}")
+        self.reset_weights_biases(weight_range, bias_range)
 
     def set_learning_rate(self, rate: float):
         self.learning_rate = rate
+
+    def reset_weights_biases(self, weight_range: float, bias_range: float):
+        self.network = []
+        # initialize layers
+        for i in range(self.layers):
+            self.network.append([])
+            # check if input layer
+            if i == 0:
+                for j in range(self.layer_size):
+                    self.network[i].append(node.Node(fill(self.num_inputs, weight_range),
+                                                     rand.uniform(-bias_range, bias_range)))
+                continue
+            for j in range(self.layer_size):
+                self.network[i].append(
+                    node.Node(fill(self.layer_size, weight_range), rand.uniform(-bias_range, bias_range)))
+
+        # initialize output layer
+        self.network.append([])
+        for j in range(self.num_outputs):
+            self.network[self.layers].append(node.Node(fill(self.layer_size, weight_range),
+                                                       rand.uniform(-bias_range, bias_range)))
 
     def set_weights_biases(self, weights: list, biases: list):
         # assume weights are 3-dimensional array
@@ -78,10 +87,7 @@ class Network:
         df = pd.DataFrame(data=data)
         df.to_csv(path, quoting=csv.QUOTE_ALL)
 
-    def train(self, inputs: list, desired: list, num_back_prop: int):
-        # train on array of inputs
-        outputs = self.forward_prop(inputs)
-
+    def print_cost(self, outputs, desired):
         # check outputs and compare to desired cost
         cost = 0
         for i in range(len(outputs)):
@@ -90,9 +96,24 @@ class Network:
         cost = cost / len(outputs)  # mean squared error
         print("Cost of last train: " + str(cost))
 
+    # returns boolean success value if network correctly identifies input
+    def train(self, inputs: list, desired: list, num_back_prop: int):
+        # train on array of inputs
+        outputs = self.forward_prop(inputs)
+
+        # print cost if debugging
+        # self.print_cost(outputs, desired)
+
+        # check if network identified correct value from input
+        index = outputs.index(max(outputs))
+        success = desired[index] == 1.0
+
         # send cost feedback backwards to adjust weights and biases
         for i in range(num_back_prop):
             self.backward_prop(desired, inputs)  # back prop a user defined num times
+
+        # if correct identified return true, otherwise return false
+        return success
 
     def forward_prop(self, inputs: list):
         outputs = []
@@ -117,7 +138,7 @@ class Network:
             index = self.network[self.layers].index(layer_node)  # save index value for future use
 
             # this is the partial derivative of the cost function with respect to this specific output node
-            local_gradient = (layer_node.last_sum - desired[index]) * (2/len(self.network[self.layers]))
+            local_gradient = (layer_node.last_sum - desired[index]) * (2 / len(self.network[self.layers]))
             prev_gradients.append(local_gradient)  # save local gradients for use in calculating future cost gradients
 
             # find new weights and biases

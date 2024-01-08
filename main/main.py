@@ -16,9 +16,11 @@ if __name__ == '__main__':
     #
     # Load MNIST dataset
     #
+    print("Loading MNIST DATABASE\n")
     mnist_dataloader = MnistDataloader(training_images_filepath, training_labels_filepath, test_images_filepath,
                                        test_labels_filepath)
     (img_train, label_train), (img_test, label_test) = mnist_dataloader.load_data()
+    print("Finished loading MNIST DATABASE\n")
 
     # print("size of Image: ", len(img_test[0]))
     # print("size of Image: ", len(img_test[0][0]))
@@ -29,7 +31,31 @@ if __name__ == '__main__':
     # size 20 layers
     # 28 x 28 images where each input is a pixel (784 inputs)
     # outputs 0 through 9 (10 outputs)
-    network = Network(3, 20, 784, 10, 1.0, 10.0)
+    num_layers, layer_size, num_inputs, num_outputs = 3, 100, 784, 10
+
+    # allow user input on network parameters
+    while True:
+        user_in = input("Select Network Parameters\n"
+                        "Leave as default to use supplied CSV\n"
+                        "1) num_layers - Current: {}\n"
+                        "2) layer_size - Current: {}\n"
+                        "3) continue\n".format(num_layers, layer_size))
+        match int(user_in):
+            case 1:
+                num_layers = int(input("Enter Integer Value\n"))
+            case 2:
+                layer_size = int(input("Enter Integer Value\n"))
+            case default:
+                break
+
+    print("Initializing Network with:\n"
+          "{} Hidden Layers\n"
+          "{} Layers Size\n"
+          "{} Inputs\n"
+          "{} Outputs\n".format(num_layers, layer_size, num_inputs, num_outputs))
+
+    # default and weight range, can be changed later
+    network = Network(num_layers, layer_size, num_inputs, num_outputs, 1.0, 10.0)
 
     while True:
         # infinite loop to test and train network
