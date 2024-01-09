@@ -8,6 +8,8 @@
     It allowed me to debug the problems I had in the musicAI network a lot easier due to working with an easier dataset,
     that dataset being the MNIST Dataset
 
+    You can find the dataset at https://www.kaggle.com/datasets/hojjatk/mnist-dataset
+
 # Features
     - Fully customizable network parameters before training
     - Added my own network to test against
